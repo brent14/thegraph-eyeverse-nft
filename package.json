@@ -1,0 +1,18 @@
+{
+  "name": "eyeverse",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ brent14/eyeverse",
+    "create-local": "graph create --node http://localhost:8020/ brent14/eyeverse",
+    "remove-local": "graph remove --node http://localhost:8020/ brent14/eyeverse",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 brent14/eyeverse",
+    "test": "graph test"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.33.0",
+    "@graphprotocol/graph-ts": "0.27.0"
+  },
+  "devDependencies": { "matchstick-as": "0.5.0" }
+}

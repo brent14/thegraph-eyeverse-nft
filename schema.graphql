@@ -27,11 +27,11 @@ type Token @entity {
   image: String!
   name: String!
   description: String!
-  blessing: String
-  back: String
-  character: String
-  head: String
-  front: String
+  blessing: String!
+  back: String!
+  character: String!
+  head: String!
+  front: String!
   compiler: String!
   updatedAtTimestamp: BigInt!
   owner: User!

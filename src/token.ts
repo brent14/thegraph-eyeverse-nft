@@ -1,4 +1,4 @@
-import { ipfs, json, JSONValue } from "@graphprotocol/graph-ts";
+import { ipfs, json, JSONValue, log } from "@graphprotocol/graph-ts";
 import {
   Transfer as TransferEvent,
   Token as TokenContract,
@@ -50,39 +50,45 @@ export function handleTransfer(event: TransferEvent): void {
           token.compiler = compiler.toString();
         }
 
-        let atts = value.get("attributes");
+        // this needs to be fixed
+
+        let eyeAttributes = value.get("attributes");
         let attributes: JSONValue[];
-        if (atts) {
-          attributes = atts.toArray();
+
+        if (eyeAttributes) {
+          attributes = eyeAttributes.toArray();
+
+          log.info("eye attributes", ["was read"]);
 
           for (let i = 0; i < attributes.length; i++) {
             let item = attributes[i].toObject();
-            let t = item.get("trait_type");
             let trait: string;
-            if (t) {
-              t.toString();
-            }
+            let traitName = item.get("trait_type");
 
-            let v = item.get("value");
-            let value: string;
-            if (v) {
-              value = v.toString();
-            }
+            if (traitName) {
+              trait = traitName.toString();
+              let value: string;
+              let traitValue = item.get("value");
 
-            if (trait == "Blessing") {
-              token.blessing = value;
-            }
-            if (trait == "Back") {
-              token.back = value;
-            }
-            if (trait == "Character") {
-              token.character = value;
-            }
-            if (trait == "Head") {
-              token.head = value;
-            }
-            if (trait == "Front") {
-              token.front = value;
+              log.info("eye attributes", ["for loops was entered"]);
+              if (traitValue) {
+                value = traitValue.toString();
+                if (trait == "Blessing") {
+                  token.blessing = value;
+                }
+                if (trait == "Back") {
+                  token.back = value;
+                }
+                if (trait == "Character") {
+                  token.character = value;
+                }
+                if (trait == "Head") {
+                  token.head = value;
+                }
+                if (trait == "Front") {
+                  token.front = value;
+                }
+              }
             }
           }
         }

@@ -1,6 +1,43 @@
-type ExampleEntity @entity {
+type _Schema_
+  @fulltext(
+    name: "eyeSearch"
+    language: en
+    algorithm: rank
+    include: [
+      {
+        entity: "Token"
+        fields: [
+          { name: "name" }
+          { name: "blessing" }
+          { name: "back" }
+          { name: "character" }
+          { name: "head" }
+          { name: "front" }
+        ]
+      }
+    ]
+  )
+
+type Token @entity {
   id: ID!
-  count: BigInt!
-  owner: Bytes! # address
-  approved: Bytes! # address
+  tokenID: BigInt!
+  tokenURI: String!
+  externalURL: String!
+  ipfsURI: String!
+  image: String!
+  name: String!
+  description: String!
+  blessing: String
+  back: String
+  character: String
+  head: String
+  front: String
+  compiler: String!
+  updatedAtTimestamp: BigInt!
+  owner: User!
+}
+
+type User @entity {
+  id: ID!
+  tokens: [Token!]! @derivedFrom(field: "owner")
 }

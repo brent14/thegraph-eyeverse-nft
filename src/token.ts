@@ -1,87 +1,104 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { ipfs, json, JSONValue } from "@graphprotocol/graph-ts";
 import {
-  Token,
-  Approval,
-  ApprovalForAll,
-  OwnershipTransferred,
-  Transfer
-} from "../generated/Token/Token"
-import { ExampleEntity } from "../generated/schema"
+  Transfer as TransferEvent,
+  Token as TokenContract,
+} from "../generated/Token/Token";
+import { Token, User } from "../generated/schema";
 
-export function handleApproval(event: Approval): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+const ipfshash = "QmTng7uDc2Ls9SXuPphjCHCqLjRScBqAPvno3f6UtvspxC";
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (!entity) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
+export function handleTransfer(event: TransferEvent): void {
+  /* load the token from the existing Graph Node */
+  let token = Token.load(event.params.tokenId.toString());
+  if (!token) {
+    /* if the token does not yet exist, create it */
+    token = new Token(event.params.tokenId.toString());
+    token.tokenID = event.params.tokenId;
 
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+    token.tokenURI = "/" + event.params.tokenId.toString();
+
+    /* combine the ipfs hash and the token ID to fetch the token metadata from IPFS */
+    let metadata = ipfs.cat(ipfshash + token.tokenURI);
+    if (metadata) {
+      const value = json.fromBytes(metadata).toObject();
+      if (value) {
+        /* using the metatadata from IPFS, update the token object with the values  */
+        const image = value.get("image");
+        const name = value.get("name");
+        const description = value.get("description");
+        const externalURL = value.get("external_url");
+
+        if (name) {
+          token.name = name.toString();
+          token.ipfsURI = "ipfs.io/ipfs/" + ipfshash + token.tokenURI;
+        }
+
+        if (image) {
+          token.image = image.toString();
+        }
+
+        if (externalURL) {
+          token.externalURL = externalURL.toString();
+        }
+
+        if (description) {
+          token.description = description.toString();
+        }
+
+        const compiler = value.get("compiler");
+        if (compiler) {
+          token.compiler = compiler.toString();
+        }
+
+        let atts = value.get("attributes");
+        let attributes: JSONValue[];
+        if (atts) {
+          attributes = atts.toArray();
+
+          for (let i = 0; i < attributes.length; i++) {
+            let item = attributes[i].toObject();
+            let t = item.get("trait_type");
+            let trait: string;
+            if (t) {
+              t.toString();
+            }
+
+            let v = item.get("value");
+            let value: string;
+            if (v) {
+              value = v.toString();
+            }
+
+            if (trait == "Blessing") {
+              token.blessing = value;
+            }
+            if (trait == "Back") {
+              token.back = value;
+            }
+            if (trait == "Character") {
+              token.character = value;
+            }
+            if (trait == "Head") {
+              token.head = value;
+            }
+            if (trait == "Front") {
+              token.front = value;
+            }
+          }
+        }
+      }
+    }
   }
+  token.updatedAtTimestamp = event.block.timestamp;
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+  /* set or update the owner field and save the token to the Graph Node */
+  token.owner = event.params.to.toHexString();
+  token.save();
 
-  // Entity fields can be set based on event parameters
-  entity.owner = event.params.owner
-  entity.approved = event.params.approved
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.CONTRACT_VERSION(...)
-  // - contract.EARLY_MINT_PRICE(...)
-  // - contract.PRICE(...)
-  // - contract.RAMPPADDRESS(...)
-  // - contract._baseTokenURI(...)
-  // - contract.balanceOf(...)
-  // - contract.baseTokenURI(...)
-  // - contract.collectionSize(...)
-  // - contract.currentTokenId(...)
-  // - contract.earlyMintTokenIdCap(...)
-  // - contract.getApproved(...)
-  // - contract.getNextTokenId(...)
-  // - contract.getOwnershipData(...)
-  // - contract.getPrice(...)
-  // - contract.isApprovedForAll(...)
-  // - contract.maxBatchSize(...)
-  // - contract.mintingOpen(...)
-  // - contract.name(...)
-  // - contract.nextOwnerToExplicitlySet(...)
-  // - contract.owner(...)
-  // - contract.ownerOf(...)
-  // - contract.payableAddressCount(...)
-  // - contract.payableAddresses(...)
-  // - contract.payableFees(...)
-  // - contract.supportsInterface(...)
-  // - contract.symbol(...)
-  // - contract.tokenByIndex(...)
-  // - contract.tokenOfOwnerByIndex(...)
-  // - contract.tokenURI(...)
-  // - contract.totalSupply(...)
-  // - contract.usingEarlyMintIncentive(...)
+  /* if the user does not yet exist, create them */
+  let user = User.load(event.params.to.toHexString());
+  if (!user) {
+    user = new User(event.params.to.toHexString());
+    user.save();
+  }
 }
-
-export function handleApprovalForAll(event: ApprovalForAll): void {}
-
-export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
-
-export function handleTransfer(event: Transfer): void {}
